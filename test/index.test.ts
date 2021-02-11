@@ -3,6 +3,7 @@ import * as execa from "execa";
 import * as shell from "shelljs";
 import * as tmp from "tmp";
 import * as fs from "fs";
+import { stripIndent } from "common-tags";
 
 const bin = getBinPathSync();
 
@@ -44,26 +45,63 @@ describe("docker-meta", () => {
     expect(result.stdout).toBe("");
     expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(`\
-{
-  "target": {
-    "docker-meta-docker-meta": {
-      "tags": [
-        "felipecrs/docker-meta:gcr-123",
-        "ghcr.io/felipecrs/docker-meta:gcr-123"
-      ],
-      "labels": {
-        "org.label-schema.vsc-ref": "81a88f4",
-        "org.label-schema.build-date": "docker-meta",
-        "org.label-schema.version": "1.1.1",
-        "org.label-schema.schema-version": "1.0.0-rc1"
-      },
-      "args": {
-        "VERSION": "1.1.1",
-        "BRANCH": "develop"
-      }
-    }
-  }
-}`);
+    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+      {
+        "target": {
+          "docker-meta-docker-meta": {
+            "tags": [
+              "felipecrs/docker-meta:gcr-123",
+              "ghcr.io/felipecrs/docker-meta:gcr-123"
+            ],
+            "labels": {
+              "org.label-schema.vsc-ref": "81a88f4",
+              "org.label-schema.build-date": "docker-meta",
+              "org.label-schema.version": "1.1.1",
+              "org.label-schema.schema-version": "1.0.0-rc1"
+            },
+            "args": {
+              "VERSION": "1.1.1",
+              "BRANCH": "develop"
+            }
+          }
+        }
+      }`);
+    });
+    it("generates correctly for non change-request", async () => {
+        process.env.VERSION = "1.1.1";
+        process.env.LATEST = "true";
+        process.env.BRANCH = "develop";
+        process.env.CHANGE_REQUEST = "false";
+        process.env.GIT_COMMIT = "81a88f4";
+
+        const result = execa.commandSync(`${bin} -o dm.json`);
+        expect(result.stdout).toBe("");
+        expect(result.exitCode).toBe(0);
+
+        expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+          {
+            "target": {
+              "docker-meta-docker-meta": {
+                "tags": [
+                  "felipecrs/docker-meta:1.1.1",
+                  "ghcr.io/felipecrs/docker-meta:1.1.1",
+                  "felipecrs/docker-meta:develop",
+                  "ghcr.io/felipecrs/docker-meta:develop",
+                  "felipecrs/docker-meta:latest",
+                  "ghcr.io/felipecrs/docker-meta:latest"
+                ],
+                "labels": {
+                  "org.label-schema.vsc-ref": "81a88f4",
+                  "org.label-schema.build-date": "docker-meta",
+                  "org.label-schema.version": "1.1.1",
+                  "org.label-schema.schema-version": "1.0.0-rc1"
+                },
+                "args": {
+                  "VERSION": "1.1.1",
+                  "BRANCH": "develop"
+                }
+              }
+            }
+          }`);
   });
 });
