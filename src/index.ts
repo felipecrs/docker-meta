@@ -2,73 +2,52 @@ import { Command, flags } from "@oclif/command";
 import { cosmiconfig } from "cosmiconfig";
 import * as chalk from "chalk";
 import * as execa from "execa";
+import * as fs from "fs";
 require("pkginfo")(module, "description");
-
-const getShortSha = (): string => {
-  return execa.commandSync("git rev-parse --short HEAD").stdout;
-};
-
-const getVersion = (): string => {
-  if (process.env.VERSION) {
-    return process.env.VERSION;
-  }
-  throw new Error("VERSION env var is mandatory")
-};
-
-const isChangeRequest = (): boolean => {
-  if (process.env.CHANGE_REQUEST) {
-    return process.env.CHANGE_REQUEST === "true";
-  }
-  throw new Error("CHANGE_REQUEST env var is mandatory")
-};
-
-const isLatest = (): boolean => {
-  if (process.env.LATEST) {
-    return process.env.LATEST === 'true';
-  }
-  throw new Error("LATEST env var is mandatory")
-}
-
-const getBranch = (): string => {
-  if (process.env.BRANCH) {
-    return process.env.BRANCH
-  }
-  throw new Error("BRANCH env var is mandatory")
-}
-
-const getChangeNumber = (): string => {
-  if (process.env.GERRIT_CHANGE_NUMBER) {
-    return process.env.GERRIT_CHANGE_NUMBER
-  }
-  throw new Error("GERRIT_CHANGE_NUMBER env var is mandatory")
-}
-
-const getBuildDate = (): string => {
-  return new Date().toISOString()
-}
 
 class BakeTarget {
   tags: string[] = [];
 
-  labels: Map<string, string> = new Map();
+  labels: {
+    [label: string]: string;
+  } = {};
 
-  args: Map<string, string> = new Map()
+  args: {
+    [arg: string]: string;
+  } = {};
 }
 
-interface BakeFile {
+class BakeFile {
   target: {
     [name: string]: BakeTarget;
-  };
+  } = {};
 }
 
-interface Config {
+interface DockerMetaConfig {
   preset: "gerrit";
+  version: string;
+  branch: string;
+  latest: boolean;
+  "change-request": boolean;
+  "change-number": string;
+  "git-sha": string;
+  "build-date": string;
   targets: {
-    [name: string]: {
-      images: string[],
-      labels: Map<string, string> = new Map(),
-    }
-  },
+    [target: string]: {
+      version: string;
+      branch: string;
+      latest: boolean;
+      "git-sha": string;
+      "build-date": string;
+      images: string[];
+      labels: {
+        [label: string]: string;
+      };
+      args: {
+        [arg: string]: string;
+      };
+    };
+  };
 };
 
 class DockerMeta extends Command {
@@ -79,73 +58,200 @@ class DockerMeta extends Command {
   `;
 
   static flags = {
-    version: flags.version(),
+    "": flags.version({ char: "V" }),
     help: flags.help({ char: "h" }),
     config: flags.string({
       char: "c",
       description: "Path to the config file",
     }),
+    output: flags.string({
+      char: "o",
+      description: "Path to the output file",
+    }),
+    branch: flags.string({
+      description: "The branch",
+    }),
+    version: flags.string({
+      description: "The version to publish",
+    }),
+    latest: flags.boolean({
+      description: "Push as latest",
+      allowNo: true,
+    }),
+    "change-request": flags.boolean({
+      description: "Change request mode",
+      allowNo: true,
+    }),
+    "change-number": flags.string({
+      description: "The change number",
+    }),
+    "git-sha": flags.string({
+      description: "The git sha",
+    }),
+    "build-date": flags.string({
+      description: "The build date in ISO 8601",
+    }),
   };
 
-  async loadConfig(config?: string): Promise<Config> {
+  // eslint-disable-next-line complexity
+  async loadConfig(flags: {
+    config?: string,
+    version?: string,
+    branch?: string,
+    latest?: boolean,
+    "build-date"?: string,
+    "git-sha"?: string,
+    "change-request"?: boolean,
+    "change-number"?: string,
+  }): Promise<DockerMetaConfig> {
     const explorer = cosmiconfig(this.config.name);
 
-    const result = config
-      ? await explorer.load(config)
+    const result = flags.config
+      ? await explorer.load(flags.config)
       : await explorer.search();
 
     if (result) {
-      return result.config;
+      const config: DockerMetaConfig = result.config;
+
+      if (config.preset !== "gerrit") {
+        this.error("The only supported preset for now is 'gerrit'.");
+      }
+
+      const resultConfig: DockerMetaConfig = {
+        ...config,
+
+        latest:
+          // eslint-disable-next-line no-negated-condition
+          typeof flags.latest !== "undefined"
+            ? flags.latest
+            : "LATEST" in process.env
+            ? process.env.LATEST === "true"
+            : // eslint-disable-next-line no-negated-condition
+            typeof config.latest !== "undefined"
+            ? config.latest
+            : false,
+
+        version: flags.version || process.env.VERSION || config.version,
+
+        branch: flags.branch || process.env.BRANCH || config.branch,
+
+        "git-sha":
+          flags["build-date"] ||
+          process.env.GIT_SHA ||
+          process.env.GIT_COMMIT ||
+          config["git-sha"] ||
+          execa.commandSync("git rev-parse --short HEAD").stdout,
+
+        "build-date":
+          flags["build-date"] ||
+          process.env.BUILD_DATE ||
+          config["build-date"] ||
+          new Date().toISOString(),
+
+        "change-request":
+          // eslint-disable-next-line no-negated-condition
+          typeof flags["change-request"] !== "undefined"
+            ? flags["change-request"]
+            : "CHANGE_REQUEST" in process.env
+            ? process.env.CHANGE_REQUEST === "true"
+            : // eslint-disable-next-line no-negated-condition
+            typeof config["change-request"] !== "undefined"
+            ? config["change-request"]
+            : true,
+
+        "change-number":
+          flags["change-number"] ||
+          process.env.GERRIT_CHANGE_NUMBER ||
+          config["change-number"],
+      };
+
+      if (!resultConfig.version) {
+        this.error("version unset");
+      }
+
+      if (typeof resultConfig.latest === "undefined") {
+        this.error("latest unset");
+      }
+
+      if (!resultConfig.branch) {
+        this.error("branch unset");
+      }
+
+      if (!resultConfig["git-sha"]) {
+        this.error("git-sha unset");
+      }
+
+      if (!resultConfig["build-date"]) {
+        this.error("build-date unset");
+      }
+
+      if (typeof resultConfig["change-request"] === "undefined") {
+        this.error("change-request unset");
+      }
+
+      if (resultConfig["change-request"] && !resultConfig["change-number"]) {
+        this.error("change-number unset in change-request mode");
+      }
+
+      return resultConfig;
     }
-    this.error("I was not able to load the configuration file.");
+    this.error("Can not load the config file.");
   }
 
   async run() {
     const { flags } = this.parse(DockerMeta);
 
-    const config = await this.loadConfig(flags.config);
+    const config: DockerMetaConfig = await this.loadConfig(flags);
 
-    if (config.preset !== "gerrit") {
-      this.error("The only supported preset for now is 'gerrit'.")
-    }
-
-    let output: BakeFile;
+    const output = new BakeFile();
 
     for (const targetName in config.targets) {
       if (Object.prototype.hasOwnProperty.call(config.targets, targetName)) {
+        const inputTarget = config.targets[targetName];
 
-        const inputTarget = config.targets[targetName]
-
-        const outputTargetName = `docker-meta-${targetName}`
+        const outputTargetName = `docker-meta-${targetName}`;
         const outputTarget: BakeTarget = new BakeTarget();
 
-        outputTarget.labels.set("org.label-schema.vsc-ref", getShortSha());
-        outputTarget.labels.set("org.label-schema.build-date", getBuildDate());
-        outputTarget.labels.set("org.label-schema.version", getVersion());
-        outputTarget.labels.set("org.label-schema.schema-version", '1.0.0-rc1');
+        outputTarget.labels["org.label-schema.vsc-ref"] = config["git-sha"];
+        outputTarget.labels["org.label-schema.build-date"] = config["build-date"];
+        outputTarget.labels["org.label-schema.version"] = config.version;
+        outputTarget.labels["org.label-schema.schema-version"] = "1.0.0-rc1";
 
         // merge generated labels with the labels from the input
-        outputTarget.labels = new Map([...outputTarget.labels, ...inputTarget.labels])
+        outputTarget.labels = { ...outputTarget.labels, ...inputTarget.labels };
 
-        if (isChangeRequest()) {
-          const changeNumber = getChangeNumber();
+        if (config["change-request"]) {
           outputTarget.tags.push(
-            ...inputTarget.images.map((image) => `${image}:gcr-${changeNumber}`)
+            ...inputTarget.images.map((image) => `${image}:gcr-${config["change-number"]}`)
           );
-        } else if (isLatest()) {
-          const branch = getBranch()
+        } else {
           outputTarget.tags.push(
-            ...inputTarget.images.map((image) => `${image}:branch-${branch}`)
+            ...inputTarget.images.map((image) => `${image}:${config.version}`)
           );
-          if (branch === 'master' || branch === 'develop') {
+
+          if (config.latest) {
             outputTarget.tags.push(
-              ...inputTarget.images.map((image) => `${image}:latest`)
+              ...inputTarget.images.map((image) => `${image}:branch-${config.branch}`)
             );
+            // eslint-disable-next-line max-depth
+            if (config.branch === "master" || config.branch === "develop") {
+              outputTarget.tags.push(
+                ...inputTarget.images.map((image) => `${image}:latest`)
+              );
+            }
           }
         }
 
-        output.target[outputTargetName] = outputTarget
+        outputTarget.args.VERSION = config.version
+        outputTarget.args.BRANCH = config.branch
+
+        output.target[outputTargetName] = outputTarget;
       }
+    }
+    if (flags.output) {
+      fs.writeFileSync(flags.output, JSON.stringify(output, null, 2));
+    } else {
+      this.log(JSON.stringify(output, null, 2));
     }
   }
 }

@@ -1,6 +1,6 @@
 # docker-meta
 
-Download and extract binaries from compressed packages.
+Generates docker meta information such as tags, labels and build-args.
 
 [![ci](https://github.com/felipecrs/docker-meta/workflows/ci/badge.svg)](https://github.com/felipecrs/docker-meta/actions?query=workflow%3Aci)
 [![Version](https://img.shields.io/npm/v/docker-meta.svg)](https://npmjs.org/package/docker-meta)
@@ -11,8 +11,8 @@ Download and extract binaries from compressed packages.
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
 <!-- toc -->
-* [docker-meta](#docker-meta)
-* [Usage](#usage)
+- [docker-meta](#docker-meta)
+- [Usage](#usage)
 <!-- tocstop -->
 
 # Usage
@@ -23,7 +23,7 @@ $ npm install -g docker-meta
 $ docker-meta COMMAND
 running command...
 $ docker-meta (-v|--version|version)
-docker-meta/1.1.0 linux-x64 node-v12.20.1
+docker-meta/0.0.0 linux-x64 node-v14.15.5
 $ docker-meta --help [COMMAND]
 USAGE
   $ docker-meta COMMAND
@@ -33,19 +33,26 @@ USAGE
 
 ```sh-session
 $ docker-meta --help
-Downloads and extracts binaries from compressed packages using a config file
+Generates docker meta information such as tags, labels and build-args.
 
 USAGE
   $ docker-meta
 
 OPTIONS
-  -c, --config=config  Path to the config file
-  -h, --help           show CLI help
-  --version            show CLI version
+  -V                             show CLI version
+  -c, --config=config            Path to the config file
+  -h, --help                     show CLI help
+  -o, --output=output            Path to the output file
+  --branch=branch                The branch
+  --build-date=build-date        The build date in ISO 8601
+  --change-number=change-number  The change number
+  --[no-]change-request          Change request mode
+  --git-sha=git-sha              The git sha
+  --[no-]latest                  Push as latest
+  --version=version              The version to publish
 
 DESCRIPTION
-  The config will be read from any valid config file in the current directory. The configuration file can be
-  defined using all the extensions and names accepted by cosmiconfig, such as docker-meta.config.js
+  The config will be read from any valid config file in the current directory. The configuration file can be defined using all the extensions and names accepted by cosmiconfig, such as docker-meta.config.js
 ```
 
 You can find an example of config file [here](./test/res/docker-meta.config.js).
