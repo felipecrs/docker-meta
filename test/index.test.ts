@@ -23,8 +23,8 @@ describe("docker-meta", () => {
     process.env = { ...OLD_ENV };
     dir = tmp.dirSync({ unsafeCleanup: true });
     shell.cd(dir.name);
-    execa.commandSync("git init");
-    execa.commandSync("git commit -m initial --allow-empty");
+    // execa.commandSync("git init");
+    // execa.commandSync("git commit -m initial --allow-empty");
     shell.cp("-f", configPath, "docker-meta.config.js");
   });
 
