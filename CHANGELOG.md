@@ -1,3 +1,14 @@
+## [2.0.0](https://github.com/felipecrs/docker-meta/compare/v1.0.1...v2.0.0) (2021-02-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove `branch-` prefix from tags and normalize branch name (#6)
+
+### Features
+
+* remove `branch-` prefix from tags and normalize branch name ([#6](https://github.com/felipecrs/docker-meta/issues/6)) ([3a3a773](https://github.com/felipecrs/docker-meta/commit/3a3a77338ebc2ef44e026ec5334b997c3d1dfbb1))
+
 ### [1.0.1](https://github.com/felipecrs/docker-meta/compare/v1.0.0...v1.0.1) (2021-02-11)
 
 
