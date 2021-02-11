@@ -231,7 +231,7 @@ class DockerMeta extends Command {
 
           if (config.latest) {
             outputTarget.tags.push(
-              ...inputTarget.images.map((image) => `${image}:branch-${config.branch}`)
+              ...inputTarget.images.map((image) => `${image}:${config.branch.replace(/[^a-zA-Z0-9._-]+/g, '-')}`)
             );
             // eslint-disable-next-line max-depth
             if (config.branch === "master" || config.branch === "develop") {
