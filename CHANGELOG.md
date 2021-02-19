@@ -1,3 +1,10 @@
+## [2.1.0](https://github.com/felipecrs/docker-meta/compare/v2.0.0...v2.1.0) (2021-02-19)
+
+
+### Features
+
+* merge args generated with args from input ([e1bc10e](https://github.com/felipecrs/docker-meta/commit/e1bc10e7e223ab3ed9be911f6dd46e43520f507a))
+
 ## [2.0.0](https://github.com/felipecrs/docker-meta/compare/v1.0.1...v2.0.0) (2021-02-11)
 
 
