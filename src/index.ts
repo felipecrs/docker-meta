@@ -245,6 +245,9 @@ class DockerMeta extends Command {
         outputTarget.args.VERSION = config.version
         outputTarget.args.BRANCH = config.branch
 
+        // Merge generated args with the args from the input
+        outputTarget.args = { ...outputTarget.args, ...inputTarget.args };
+
         output.target[outputTargetName] = outputTarget;
       }
     }
