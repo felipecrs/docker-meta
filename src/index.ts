@@ -209,7 +209,7 @@ class DockerMeta extends Command {
       if (Object.prototype.hasOwnProperty.call(config.targets, targetName)) {
         const inputTarget = config.targets[targetName];
 
-        const outputTargetName = `docker-meta-${targetName}`;
+        const outputTargetName = targetName;
         const outputTarget: BakeTarget = new BakeTarget();
 
         outputTarget.labels["org.label-schema.vsc-ref"] = config["git-sha"];

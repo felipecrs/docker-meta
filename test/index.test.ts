@@ -48,7 +48,7 @@ describe("docker-meta", () => {
     expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
       {
         "target": {
-          "docker-meta-docker-meta": {
+          "docker-meta": {
             "tags": [
               "felipecrs/docker-meta:gcr-123",
               "ghcr.io/felipecrs/docker-meta:gcr-123"
@@ -81,7 +81,7 @@ describe("docker-meta", () => {
         expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
           {
             "target": {
-              "docker-meta-docker-meta": {
+              "docker-meta": {
                 "tags": [
                   "felipecrs/docker-meta:1.1.1",
                   "ghcr.io/felipecrs/docker-meta:1.1.1",
