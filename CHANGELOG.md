@@ -1,3 +1,14 @@
+## [3.0.0](https://github.com/felipecrs/docker-meta/compare/v2.1.0...v3.0.0) (2021-03-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* stop adding `docker-meta` prefix to targets
+
+### Features
+
+* stop adding `docker-meta` prefix to targets ([a5f187f](https://github.com/felipecrs/docker-meta/commit/a5f187f2e490762d9256f4b889d8152bd1b0cf1a))
+
 ## [2.1.0](https://github.com/felipecrs/docker-meta/compare/v2.0.0...v2.1.0) (2021-02-19)
 
 
