@@ -48,7 +48,7 @@ interface DockerMetaConfig {
       };
     };
   };
-};
+}
 
 class DockerMeta extends Command {
   static description = `${module.exports.description}
@@ -95,14 +95,14 @@ class DockerMeta extends Command {
 
   // eslint-disable-next-line complexity
   async loadConfig(flags: {
-    config?: string,
-    version?: string,
-    branch?: string,
-    latest?: boolean,
-    "build-date"?: string,
-    "git-sha"?: string,
-    "change-request"?: boolean,
-    "change-number"?: string,
+    config?: string;
+    version?: string;
+    branch?: string;
+    latest?: boolean;
+    "build-date"?: string;
+    "git-sha"?: string;
+    "change-request"?: boolean;
+    "change-number"?: string;
   }): Promise<DockerMetaConfig> {
     const explorer = cosmiconfig(this.config.name);
 
@@ -133,7 +133,11 @@ class DockerMeta extends Command {
 
         version: flags.version || process.env.VERSION || config.version,
 
-        branch: flags.branch || process.env.BRANCH || config.branch,
+        branch:
+          flags.branch ||
+          process.env.BRANCH ||
+          config.branch ||
+          execa.commandSync("git branch --show-current").stdout,
 
         "git-sha":
           flags["build-date"] ||
@@ -213,7 +217,8 @@ class DockerMeta extends Command {
         const outputTarget: BakeTarget = new BakeTarget();
 
         outputTarget.labels["org.label-schema.vsc-ref"] = config["git-sha"];
-        outputTarget.labels["org.label-schema.build-date"] = config["build-date"];
+        outputTarget.labels["org.label-schema.build-date"] =
+          config["build-date"];
         outputTarget.labels["org.label-schema.version"] = config.version;
         outputTarget.labels["org.label-schema.schema-version"] = "1.0.0-rc1";
 
@@ -222,7 +227,9 @@ class DockerMeta extends Command {
 
         if (config["change-request"]) {
           outputTarget.tags.push(
-            ...inputTarget.images.map((image) => `${image}:gcr-${config["change-number"]}`)
+            ...inputTarget.images.map(
+              (image) => `${image}:gcr-${config["change-number"]}`
+            )
           );
         } else {
           outputTarget.tags.push(
@@ -231,7 +238,10 @@ class DockerMeta extends Command {
 
           if (config.latest) {
             outputTarget.tags.push(
-              ...inputTarget.images.map((image) => `${image}:${config.branch.replace(/[^a-zA-Z0-9._-]+/g, '-')}`)
+              ...inputTarget.images.map(
+                (image) =>
+                  `${image}:${config.branch.replace(/[^a-zA-Z0-9._-]+/g, "-")}`
+              )
             );
             // eslint-disable-next-line max-depth
             if (config.branch === "master" || config.branch === "develop") {
@@ -242,8 +252,8 @@ class DockerMeta extends Command {
           }
         }
 
-        outputTarget.args.VERSION = config.version
-        outputTarget.args.BRANCH = config.branch
+        outputTarget.args.VERSION = config.version;
+        outputTarget.args.BRANCH = config.branch;
 
         // Merge generated args with the args from the input
         outputTarget.args = { ...outputTarget.args, ...inputTarget.args };
