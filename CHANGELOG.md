@@ -1,3 +1,10 @@
+## [3.1.0](https://github.com/felipecrs/docker-meta/compare/v3.0.0...v3.1.0) (2021-03-16)
+
+
+### Features
+
+* get `branch` from `git` ([#29](https://github.com/felipecrs/docker-meta/issues/29)) ([c9bca70](https://github.com/felipecrs/docker-meta/commit/c9bca70a859fff8141fb190938be273cd4a01f9e))
+
 ## [3.0.0](https://github.com/felipecrs/docker-meta/compare/v2.1.0...v3.0.0) (2021-03-03)
 
 
