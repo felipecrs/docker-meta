@@ -17,27 +17,27 @@ beforeAll(() => {
 
 describe("docker-meta", () => {
   let dir: tmp.DirResult;
-  const OLD_ENV = process.env;
+  let cleanEnv: any;
 
-  beforeEach(async () => {
-    jest.resetModules();
-    process.env = { ...OLD_ENV };
+  beforeEach(() => {
+    cleanEnv = process.env;
     dir = tmp.dirSync({ unsafeCleanup: true });
     shell.cd(dir.name);
-    // execa.commandSync("git init");
-    // execa.commandSync("git commit -m initial --allow-empty");
+    execa.commandSync("git init");
+    execa.commandSync("git commit --no-edit --allow-empty --allow-empty-message");
     shell.cp("-f", configPath, "docker-meta.config.js");
   });
 
-  afterEach(async () => {
-    process.env = OLD_ENV;
+  afterEach(() => {
+    shell.cd("-");
     dir.removeCallback();
+    jest.resetModules();
+    process.env = cleanEnv;
   });
 
   it("generates correctly for gerrit change", async () => {
     process.env.VERSION = "1.1.1";
     process.env.LATEST = "true";
-    process.env.BRANCH = "develop";
     process.env.GERRIT_CHANGE_NUMBER = "123";
     process.env.GIT_COMMIT = "81a88f4";
 
@@ -61,24 +61,24 @@ describe("docker-meta", () => {
             },
             "args": {
               "VERSION": "1.1.1",
-              "BRANCH": "develop"
+              "BRANCH": "master"
             }
           }
         }
       }`);
-    });
-    it("generates correctly for non change-request", async () => {
-        process.env.VERSION = "1.1.1";
-        process.env.LATEST = "true";
-        process.env.BRANCH = "develop";
-        process.env.CHANGE_REQUEST = "false";
-        process.env.GIT_COMMIT = "81a88f4";
+  });
+  it("generates correctly for non change-request", async () => {
+    process.env.VERSION = "1.1.1";
+    process.env.LATEST = "true";
+    process.env.BRANCH = "develop";
+    process.env.CHANGE_REQUEST = "false";
+    process.env.GIT_COMMIT = "81a88f4";
 
-        const result = execa.commandSync(`${bin} -o dm.json`);
-        expect(result.stdout).toBe("");
-        expect(result.exitCode).toBe(0);
+    const result = execa.commandSync(`${bin} -o dm.json`);
+    expect(result.stdout).toBe("");
+    expect(result.exitCode).toBe(0);
 
-        expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
           {
             "target": {
               "docker-meta": {
