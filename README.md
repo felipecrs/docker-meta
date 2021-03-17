@@ -11,8 +11,8 @@ Generates docker meta information such as tags, labels and build-args.
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
 <!-- toc -->
-- [docker-meta](#docker-meta)
-- [Usage](#usage)
+* [docker-meta](#docker-meta)
+* [Usage](#usage)
 <!-- tocstop -->
 
 # Usage
@@ -23,7 +23,7 @@ $ npm install -g docker-meta
 $ docker-meta COMMAND
 running command...
 $ docker-meta (-v|--version|version)
-docker-meta/3.1.0 linux-x64 node-v12.21.0
+docker-meta/4.0.0 linux-x64 node-v14.16.0
 $ docker-meta --help [COMMAND]
 USAGE
   $ docker-meta COMMAND
