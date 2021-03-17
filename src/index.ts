@@ -3,6 +3,7 @@ import { cosmiconfig } from "cosmiconfig";
 import * as chalk from "chalk";
 import * as execa from "execa";
 import * as fs from "fs";
+import * as semver from "semver";
 require("pkginfo")(module, "description");
 
 class BakeTarget {
@@ -28,6 +29,7 @@ interface DockerMetaConfig {
   version: string;
   branch: string;
   latest: boolean;
+  "tag-semver": boolean | "auto";
   "change-request": boolean;
   "change-number": string;
   "git-sha": string;
@@ -78,6 +80,10 @@ class DockerMeta extends Command {
       description: "Push as latest",
       allowNo: true,
     }),
+    "tag-semver": flags.boolean({
+      description: "Use semver strategy to generate tags",
+      allowNo: true,
+    }),
     "change-request": flags.boolean({
       description: "Change request mode",
       allowNo: true,
@@ -99,6 +105,7 @@ class DockerMeta extends Command {
     version?: string;
     branch?: string;
     latest?: boolean;
+    "tag-semver"?: boolean;
     "build-date"?: string;
     "git-sha"?: string;
     "change-request"?: boolean;
@@ -130,6 +137,15 @@ class DockerMeta extends Command {
             typeof config.latest !== "undefined"
             ? config.latest
             : false,
+
+        "tag-semver":
+          // eslint-disable-next-line no-negated-condition
+          typeof flags["tag-semver"] !== "undefined"
+            ? flags["tag-semver"]
+            : // eslint-disable-next-line no-negated-condition
+            typeof config["tag-semver"] !== "undefined"
+            ? config["tag-semver"]
+            : "auto",
 
         version: flags.version || process.env.VERSION || config.version,
 
@@ -171,6 +187,13 @@ class DockerMeta extends Command {
 
       if (!resultConfig.version) {
         this.error("version unset");
+      } else if (
+        resultConfig["tag-semver"] === true &&
+        !semver.valid(resultConfig.version)
+      ) {
+        this.error(
+          "tag-semver is enabled but version doesn't seem to be valid semver"
+        );
       }
 
       if (typeof resultConfig.latest === "undefined") {
@@ -202,7 +225,7 @@ class DockerMeta extends Command {
     this.error("Can not load the config file.");
   }
 
-  async run() {
+  async run(): Promise<void> {
     const { flags } = this.parse(DockerMeta);
 
     const config: DockerMetaConfig = await this.loadConfig(flags);
@@ -216,10 +239,17 @@ class DockerMeta extends Command {
         const outputTargetName = targetName;
         const outputTarget: BakeTarget = new BakeTarget();
 
+        // semver.parse will normalize the version if it's a valid semver
+        // example: v1.0.0 -> 1.0.0
+        // otherwise we leave it as is
+        const normalizedVersion = `${
+          semver.parse(config.version) || config.version
+        }`;
+
         outputTarget.labels["org.label-schema.vsc-ref"] = config["git-sha"];
         outputTarget.labels["org.label-schema.build-date"] =
           config["build-date"];
-        outputTarget.labels["org.label-schema.version"] = config.version;
+        outputTarget.labels["org.label-schema.version"] = normalizedVersion;
         outputTarget.labels["org.label-schema.schema-version"] = "1.0.0-rc1";
 
         // merge generated labels with the labels from the input
@@ -233,16 +263,41 @@ class DockerMeta extends Command {
           );
         } else {
           outputTarget.tags.push(
-            ...inputTarget.images.map((image) => `${image}:${config.version}`)
+            ...inputTarget.images.map(
+              (image) => `${image}:${normalizedVersion}`
+            )
           );
 
           if (config.latest) {
+            // eslint-disable-next-line max-depth
+            if (config["tag-semver"] && semver.valid(config.version)) {
+              const versionTags: string[] = [];
+
+              const majorTag = `${semver.major(normalizedVersion)}`;
+              versionTags.push(majorTag);
+              const minorTag = `${majorTag}.${semver.minor(normalizedVersion)}`;
+              versionTags.push(minorTag);
+              const patchTag = `${minorTag}.${semver.patch(normalizedVersion)}`;
+              // prevent adding duplicated version tags
+              // eslint-disable-next-line max-depth
+              if (patchTag !== normalizedVersion) {
+                versionTags.push(patchTag);
+              }
+
+              versionTags.forEach((versionTag) =>
+                outputTarget.tags.push(
+                  ...inputTarget.images.map((image) => `${image}:${versionTag}`)
+                )
+              );
+            }
+
             outputTarget.tags.push(
               ...inputTarget.images.map(
                 (image) =>
                   `${image}:${config.branch.replace(/[^a-zA-Z0-9._-]+/g, "-")}`
               )
             );
+
             // eslint-disable-next-line max-depth
             if (config.branch === "master" || config.branch === "develop") {
               outputTarget.tags.push(
@@ -252,7 +307,7 @@ class DockerMeta extends Command {
           }
         }
 
-        outputTarget.args.VERSION = config.version;
+        outputTarget.args.VERSION = normalizedVersion;
         outputTarget.args.BRANCH = config.branch;
 
         // Merge generated args with the args from the input
