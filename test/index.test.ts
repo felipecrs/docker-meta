@@ -241,4 +241,37 @@ describe("docker-meta", () => {
     });
     expect(result.exitCode).toBe(2);
   });
+
+  it("allows to disable the version", async () => {
+    process.env.LATEST = "true";
+    process.env.BRANCH = "develop";
+    process.env.CHANGE_REQUEST = "false";
+    process.env.GIT_COMMIT = "81a88f4";
+
+    const result = execa.commandSync(`${bin} --no-tag-version -o dm.json`);
+    expect(result.stdout).toBe("");
+    expect(result.exitCode).toBe(0);
+
+    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+          {
+            "target": {
+              "docker-meta": {
+                "tags": [
+                  "felipecrs/docker-meta:develop",
+                  "ghcr.io/felipecrs/docker-meta:develop",
+                  "felipecrs/docker-meta:latest",
+                  "ghcr.io/felipecrs/docker-meta:latest"
+                ],
+                "labels": {
+                  "org.label-schema.vsc-ref": "81a88f4",
+                  "org.label-schema.build-date": "docker-meta",
+                  "org.label-schema.schema-version": "1.0.0-rc1"
+                },
+                "args": {
+                  "BRANCH": "develop"
+                }
+              }
+            }
+          }`);
+  });
 });

@@ -29,6 +29,7 @@ interface DockerMetaConfig {
   version: string;
   branch: string;
   latest: boolean;
+  "tag-version": boolean
   "tag-semver": boolean | "auto";
   "change-request": boolean;
   "change-number": string;
@@ -80,6 +81,10 @@ class DockerMeta extends Command {
       description: "Push as latest",
       allowNo: true,
     }),
+    "tag-version": flags.boolean({
+      description: "Use `version` to generate tags",
+      allowNo: true,
+    }),
     "tag-semver": flags.boolean({
       description: "Use semver strategy to generate tags",
       allowNo: true,
@@ -105,6 +110,7 @@ class DockerMeta extends Command {
     version?: string;
     branch?: string;
     latest?: boolean;
+    "tag-version"?: boolean;
     "tag-semver"?: boolean;
     "build-date"?: string;
     "git-sha"?: string;
@@ -132,11 +138,20 @@ class DockerMeta extends Command {
           typeof flags.latest !== "undefined"
             ? flags.latest
             : "LATEST" in process.env
-            ? process.env.LATEST === "true"
+              ? process.env.LATEST === "true"
+              : // eslint-disable-next-line no-negated-condition
+              typeof config.latest !== "undefined"
+                ? config.latest
+                : false,
+
+        "tag-version":
+          // eslint-disable-next-line no-negated-condition
+          typeof flags["tag-version"] !== "undefined"
+            ? flags["tag-version"]
             : // eslint-disable-next-line no-negated-condition
-            typeof config.latest !== "undefined"
-            ? config.latest
-            : false,
+            typeof config["tag-version"] !== "undefined"
+              ? config["tag-version"]
+              : true,
 
         "tag-semver":
           // eslint-disable-next-line no-negated-condition
@@ -144,8 +159,8 @@ class DockerMeta extends Command {
             ? flags["tag-semver"]
             : // eslint-disable-next-line no-negated-condition
             typeof config["tag-semver"] !== "undefined"
-            ? config["tag-semver"]
-            : "auto",
+              ? config["tag-semver"]
+              : "auto",
 
         version: flags.version || process.env.VERSION || config.version,
 
@@ -173,11 +188,11 @@ class DockerMeta extends Command {
           typeof flags["change-request"] !== "undefined"
             ? flags["change-request"]
             : "CHANGE_REQUEST" in process.env
-            ? process.env.CHANGE_REQUEST === "true"
-            : // eslint-disable-next-line no-negated-condition
-            typeof config["change-request"] !== "undefined"
-            ? config["change-request"]
-            : true,
+              ? process.env.CHANGE_REQUEST === "true"
+              : // eslint-disable-next-line no-negated-condition
+              typeof config["change-request"] !== "undefined"
+                ? config["change-request"]
+                : true,
 
         "change-number":
           flags["change-number"] ||
@@ -185,7 +200,7 @@ class DockerMeta extends Command {
           config["change-number"],
       };
 
-      if (!resultConfig.version) {
+      if (resultConfig["tag-version"] === true && !resultConfig.version) {
         this.error("version unset");
       } else if (
         resultConfig["tag-semver"] === true &&
@@ -242,14 +257,15 @@ class DockerMeta extends Command {
         // semver.parse will normalize the version if it's a valid semver
         // example: v1.0.0 -> 1.0.0
         // otherwise we leave it as is
-        const normalizedVersion = `${
-          semver.parse(config.version) || config.version
-        }`;
+        const normalizedVersion = `${semver.parse(config.version) || config.version
+          }`;
 
         outputTarget.labels["org.label-schema.vsc-ref"] = config["git-sha"];
         outputTarget.labels["org.label-schema.build-date"] =
           config["build-date"];
-        outputTarget.labels["org.label-schema.version"] = normalizedVersion;
+        if (config["tag-version"] === true) {
+          outputTarget.labels["org.label-schema.version"] = normalizedVersion;
+        }
         outputTarget.labels["org.label-schema.schema-version"] = "1.0.0-rc1";
 
         // merge generated labels with the labels from the input
@@ -262,15 +278,17 @@ class DockerMeta extends Command {
             )
           );
         } else {
-          outputTarget.tags.push(
-            ...inputTarget.images.map(
-              (image) => `${image}:${normalizedVersion}`
-            )
-          );
+          if (config["tag-version"] === true) {
+            outputTarget.tags.push(
+              ...inputTarget.images.map(
+                (image) => `${image}:${normalizedVersion}`
+              )
+            );
+          }
 
           if (config.latest) {
             // eslint-disable-next-line max-depth
-            if (config["tag-semver"] && semver.valid(config.version)) {
+            if (config["tag-version"] === true && config["tag-semver"] && semver.valid(config.version)) {
               const versionTags: string[] = [];
 
               const majorTag = `${semver.major(normalizedVersion)}`;
@@ -307,7 +325,9 @@ class DockerMeta extends Command {
           }
         }
 
-        outputTarget.args.VERSION = normalizedVersion;
+        if (config["tag-version"] === true) {
+          outputTarget.args.VERSION = normalizedVersion;
+        }
         outputTarget.args.BRANCH = config.branch;
 
         // Merge generated args with the args from the input
