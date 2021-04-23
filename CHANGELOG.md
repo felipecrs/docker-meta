@@ -1,3 +1,10 @@
+## [4.1.0](https://github.com/felipecrs/docker-meta/compare/v4.0.0...v4.1.0) (2021-04-23)
+
+
+### Features
+
+* --no-tag-version to disable using version ([b2988db](https://github.com/felipecrs/docker-meta/commit/b2988dbe0e82bbdf3c42c356f89c431fb485a718))
+
 ## [4.0.0](https://github.com/felipecrs/docker-meta/compare/v3.1.0...v4.0.0) (2021-03-17)
 
 
