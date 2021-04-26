@@ -16,12 +16,18 @@ class BakeTarget {
   args: {
     [arg: string]: string;
   } = {};
+
+  [key: string]: any;
 }
 
 class BakeFile {
   target: {
     [name: string]: BakeTarget;
   } = {};
+
+  group?: {
+    [name: string]: any;
+  };
 }
 
 interface DockerMetaConfig {
@@ -49,8 +55,12 @@ interface DockerMetaConfig {
       args: {
         [arg: string]: string;
       };
+      [key: string]: any;
     };
   };
+  groups: {
+    [group: string]: any;
+  }
 }
 
 class DockerMeta extends Command {
@@ -252,7 +262,7 @@ class DockerMeta extends Command {
         const inputTarget = config.targets[targetName];
 
         const outputTargetName = targetName;
-        const outputTarget: BakeTarget = new BakeTarget();
+        let outputTarget: BakeTarget = new BakeTarget();
 
         // semver.parse will normalize the version if it's a valid semver
         // example: v1.0.0 -> 1.0.0
@@ -268,19 +278,21 @@ class DockerMeta extends Command {
         }
         outputTarget.labels["org.label-schema.schema-version"] = "1.0.0-rc1";
 
+        // extract needed fields
+        const { labels: inputLabels, images: inputImages, args: inputArgs, tags: inputTags, ...inputExtraKeys } = inputTarget;
         // merge generated labels with the labels from the input
-        outputTarget.labels = { ...outputTarget.labels, ...inputTarget.labels };
+        outputTarget.labels = { ...outputTarget.labels, ...inputLabels };
 
         if (config["change-request"]) {
           outputTarget.tags.push(
-            ...inputTarget.images.map(
+            ...inputImages.map(
               (image) => `${image}:gcr-${config["change-number"]}`
             )
           );
         } else {
           if (config["tag-version"] === true) {
             outputTarget.tags.push(
-              ...inputTarget.images.map(
+              ...inputImages.map(
                 (image) => `${image}:${normalizedVersion}`
               )
             );
@@ -304,13 +316,13 @@ class DockerMeta extends Command {
 
               versionTags.forEach((versionTag) =>
                 outputTarget.tags.push(
-                  ...inputTarget.images.map((image) => `${image}:${versionTag}`)
+                  ...inputImages.map((image) => `${image}:${versionTag}`)
                 )
               );
             }
 
             outputTarget.tags.push(
-              ...inputTarget.images.map(
+              ...inputImages.map(
                 (image) =>
                   `${image}:${config.branch.replace(/[^a-zA-Z0-9._-]+/g, "-")}`
               )
@@ -319,10 +331,14 @@ class DockerMeta extends Command {
             // eslint-disable-next-line max-depth
             if (config.branch === "master" || config.branch === "develop") {
               outputTarget.tags.push(
-                ...inputTarget.images.map((image) => `${image}:latest`)
+                ...inputImages.map((image) => `${image}:latest`)
               );
             }
           }
+        }
+
+        if (Array.isArray(inputTags)) {
+          outputTarget.tags.push(...inputTags);
         }
 
         if (config["tag-version"] === true) {
@@ -331,11 +347,19 @@ class DockerMeta extends Command {
         outputTarget.args.BRANCH = config.branch;
 
         // Merge generated args with the args from the input
-        outputTarget.args = { ...outputTarget.args, ...inputTarget.args };
+        outputTarget.args = { ...outputTarget.args, ...inputArgs };
+
+        // Add extra keys
+        outputTarget = { ...outputTarget, ...inputExtraKeys };
 
         output.target[outputTargetName] = outputTarget;
       }
     }
+
+    if(config.groups) {
+      output.group = config.groups;
+    }
+
     if (flags.output) {
       fs.writeFileSync(flags.output, JSON.stringify(output, null, 2));
     } else {
