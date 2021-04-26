@@ -1,3 +1,10 @@
+## [4.2.0](https://github.com/felipecrs/docker-meta/compare/v4.1.0...v4.2.0) (2021-04-26)
+
+
+### Features
+
+* allow groups to be defined and also extra keys ([#43](https://github.com/felipecrs/docker-meta/issues/43)) ([72e1350](https://github.com/felipecrs/docker-meta/commit/72e13507bc5b4ca57344e4ce55e56e295260337b))
+
 ## [4.1.0](https://github.com/felipecrs/docker-meta/compare/v4.0.0...v4.1.0) (2021-04-23)
 
 
