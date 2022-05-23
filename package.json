@@ -38,7 +38,7 @@
     "common-tags": "^1.8.0",
     "conventional-changelog-conventionalcommits": "^4.5.0",
     "cz-conventional-changelog": "^3.2.0",
-    "eslint": "^7.20.0",
+    "eslint": "^8.16.0",
     "eslint-config-oclif": "^3.1.0",
     "eslint-config-oclif-typescript": "^0.2.0",
     "eslint-config-prettier": "^8.0.0",
