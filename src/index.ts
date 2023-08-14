@@ -39,6 +39,7 @@ interface DockerMetaConfig {
   "tag-semver": boolean | "auto";
   "change-request": boolean;
   "change-number": string;
+  "patchset-number": string;
   "git-sha": string;
   "build-date": string;
   targets: {
@@ -106,6 +107,9 @@ class DockerMeta extends Command {
     "change-number": flags.string({
       description: "The change number",
     }),
+    "patchset-number": flags.string({
+      description: "The change patchset number",
+    }),
     "git-sha": flags.string({
       description: "The git sha",
     }),
@@ -126,6 +130,7 @@ class DockerMeta extends Command {
     "git-sha"?: string;
     "change-request"?: boolean;
     "change-number"?: string;
+    "patchset-number"?: string;
   }): Promise<DockerMetaConfig> {
     const explorer = cosmiconfig(this.config.name);
 
@@ -208,6 +213,11 @@ class DockerMeta extends Command {
           flags["change-number"] ||
           process.env.GERRIT_CHANGE_NUMBER ||
           config["change-number"],
+
+        "patchset-number":
+          flags["patchset-number"] ||
+          process.env.GERRIT_PATCHSET_NUMBER ||
+          config["patchset-number"],
       };
 
       if (resultConfig["tag-version"] === true && !resultConfig.version) {
@@ -244,6 +254,8 @@ class DockerMeta extends Command {
       if (resultConfig["change-request"] && !resultConfig["change-number"]) {
         this.error("change-number unset in change-request mode");
       }
+
+      // If patchset number is not set, it's ok. It's not mandatory.
 
       return resultConfig;
     }
@@ -289,6 +301,15 @@ class DockerMeta extends Command {
               (image) => `${image}:gcr-${config["change-number"]}`
             )
           );
+          // Push patchset number too if set
+          if (config["patchset-number"]) {
+            outputTarget.tags.push(
+              ...inputImages.map(
+                (image) =>
+                  `${image}:gcr-${config["change-number"]}-${config["patchset-number"]}`
+              )
+            );
+          }
         } else {
           if (config["tag-version"] === true) {
             outputTarget.tags.push(
