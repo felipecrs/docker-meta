@@ -1,3 +1,10 @@
+## [4.3.0](https://github.com/felipecrs/docker-meta/compare/v4.2.0...v4.3.0) (2023-08-14)
+
+
+### Features
+
+* push additional tag if patchset number is set ([8f0cd07](https://github.com/felipecrs/docker-meta/commit/8f0cd072ee7c0cb6746d486e3d9f02857ae0c6bd))
+
 ## [4.2.0](https://github.com/felipecrs/docker-meta/compare/v4.1.0...v4.2.0) (2021-04-26)
 
 
