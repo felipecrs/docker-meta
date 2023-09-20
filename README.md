@@ -23,7 +23,7 @@ $ npm install -g docker-meta
 $ docker-meta COMMAND
 running command...
 $ docker-meta (-v|--version|version)
-docker-meta/4.3.0 linux-x64 node-v18.17.1
+docker-meta/4.4.0 linux-x64 node-v18.18.0
 $ docker-meta --help [COMMAND]
 USAGE
   $ docker-meta COMMAND

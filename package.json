@@ -1,7 +1,7 @@
 {
   "name": "docker-meta",
   "description": "Generates docker meta information such as tags, labels and build-args.",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "author": "Felipe Santos @felipecrs",
   "bin": {
     "docker-meta": "./bin/run"

@@ -1,3 +1,10 @@
+## [4.4.0](https://github.com/felipecrs/docker-meta/compare/v4.3.0...v4.4.0) (2023-09-20)
+
+
+### Features
+
+* add --tag-git-sha to generate tags like `:sha-<git-sha>` ([#227](https://github.com/felipecrs/docker-meta/issues/227)) ([587ed09](https://github.com/felipecrs/docker-meta/commit/587ed0998a081f21a336971ba9988ab5e89516d0))
+
 ## [4.3.0](https://github.com/felipecrs/docker-meta/compare/v4.2.0...v4.3.0) (2023-08-14)
 
 
