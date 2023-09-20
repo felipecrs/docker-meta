@@ -35,7 +35,8 @@ interface DockerMetaConfig {
   version: string;
   branch: string;
   latest: boolean;
-  "tag-version": boolean
+  "tag-version": boolean;
+  "tag-git-sha": boolean;
   "tag-semver": boolean | "auto";
   "change-request": boolean;
   "change-number": string;
@@ -61,7 +62,7 @@ interface DockerMetaConfig {
   };
   groups: {
     [group: string]: any;
-  }
+  };
 }
 
 class DockerMeta extends Command {
@@ -96,6 +97,11 @@ class DockerMeta extends Command {
       description: "Use `version` to generate tags",
       allowNo: true,
     }),
+    "tag-git-sha": flags.boolean({
+      description:
+        "Generate tags like `:sha-<git-sha>` when not in change request mode",
+      allowNo: true,
+    }),
     "tag-semver": flags.boolean({
       description: "Use semver strategy to generate tags",
       allowNo: true,
@@ -125,6 +131,7 @@ class DockerMeta extends Command {
     branch?: string;
     latest?: boolean;
     "tag-version"?: boolean;
+    "tag-git-sha"?: boolean;
     "tag-semver"?: boolean;
     "build-date"?: string;
     "git-sha"?: string;
@@ -153,11 +160,11 @@ class DockerMeta extends Command {
           typeof flags.latest !== "undefined"
             ? flags.latest
             : "LATEST" in process.env
-              ? process.env.LATEST === "true"
-              : // eslint-disable-next-line no-negated-condition
-              typeof config.latest !== "undefined"
-                ? config.latest
-                : false,
+            ? process.env.LATEST === "true"
+            : // eslint-disable-next-line no-negated-condition
+            typeof config.latest !== "undefined"
+            ? config.latest
+            : false,
 
         "tag-version":
           // eslint-disable-next-line no-negated-condition
@@ -165,8 +172,17 @@ class DockerMeta extends Command {
             ? flags["tag-version"]
             : // eslint-disable-next-line no-negated-condition
             typeof config["tag-version"] !== "undefined"
-              ? config["tag-version"]
-              : true,
+            ? config["tag-version"]
+            : true,
+
+        "tag-git-sha":
+          // eslint-disable-next-line no-negated-condition
+          typeof flags["tag-git-sha"] !== "undefined"
+            ? flags["tag-git-sha"]
+            : // eslint-disable-next-line no-negated-condition
+            typeof config["tag-git-sha"] !== "undefined"
+            ? config["tag-git-sha"]
+            : false,
 
         "tag-semver":
           // eslint-disable-next-line no-negated-condition
@@ -174,8 +190,8 @@ class DockerMeta extends Command {
             ? flags["tag-semver"]
             : // eslint-disable-next-line no-negated-condition
             typeof config["tag-semver"] !== "undefined"
-              ? config["tag-semver"]
-              : "auto",
+            ? config["tag-semver"]
+            : "auto",
 
         version: flags.version || process.env.VERSION || config.version,
 
@@ -186,7 +202,7 @@ class DockerMeta extends Command {
           execa.commandSync("git branch --show-current").stdout,
 
         "git-sha":
-          flags["build-date"] ||
+          flags["git-sha"] ||
           process.env.GIT_SHA ||
           process.env.GIT_COMMIT ||
           config["git-sha"] ||
@@ -203,11 +219,11 @@ class DockerMeta extends Command {
           typeof flags["change-request"] !== "undefined"
             ? flags["change-request"]
             : "CHANGE_REQUEST" in process.env
-              ? process.env.CHANGE_REQUEST === "true"
-              : // eslint-disable-next-line no-negated-condition
-              typeof config["change-request"] !== "undefined"
-                ? config["change-request"]
-                : true,
+            ? process.env.CHANGE_REQUEST === "true"
+            : // eslint-disable-next-line no-negated-condition
+            typeof config["change-request"] !== "undefined"
+            ? config["change-request"]
+            : true,
 
         "change-number":
           flags["change-number"] ||
@@ -242,6 +258,9 @@ class DockerMeta extends Command {
       if (!resultConfig["git-sha"]) {
         this.error("git-sha unset");
       }
+
+      // Shorten the git sha to 7 characters
+      resultConfig["git-sha"] = resultConfig["git-sha"].substring(0, 7);
 
       if (!resultConfig["build-date"]) {
         this.error("build-date unset");
@@ -279,8 +298,9 @@ class DockerMeta extends Command {
         // semver.parse will normalize the version if it's a valid semver
         // example: v1.0.0 -> 1.0.0
         // otherwise we leave it as is
-        const normalizedVersion = `${semver.parse(config.version) || config.version
-          }`;
+        const normalizedVersion = `${
+          semver.parse(config.version) || config.version
+        }`;
 
         outputTarget.labels["org.label-schema.vsc-ref"] = config["git-sha"];
         outputTarget.labels["org.label-schema.build-date"] =
@@ -291,7 +311,13 @@ class DockerMeta extends Command {
         outputTarget.labels["org.label-schema.schema-version"] = "1.0.0-rc1";
 
         // extract needed fields
-        const { labels: inputLabels, images: inputImages, args: inputArgs, tags: inputTags, ...inputExtraKeys } = inputTarget;
+        const {
+          labels: inputLabels,
+          images: inputImages,
+          args: inputArgs,
+          tags: inputTags,
+          ...inputExtraKeys
+        } = inputTarget;
         // merge generated labels with the labels from the input
         outputTarget.labels = { ...outputTarget.labels, ...inputLabels };
 
@@ -311,17 +337,25 @@ class DockerMeta extends Command {
             );
           }
         } else {
+          if (config["tag-git-sha"] === true) {
+            outputTarget.tags.push(
+              ...inputImages.map((image) => `${image}:sha-${config["git-sha"]}`)
+            );
+          }
+
           if (config["tag-version"] === true) {
             outputTarget.tags.push(
-              ...inputImages.map(
-                (image) => `${image}:${normalizedVersion}`
-              )
+              ...inputImages.map((image) => `${image}:${normalizedVersion}`)
             );
           }
 
           if (config.latest) {
             // eslint-disable-next-line max-depth
-            if (config["tag-version"] === true && config["tag-semver"] && semver.valid(config.version)) {
+            if (
+              config["tag-version"] === true &&
+              config["tag-semver"] &&
+              semver.valid(config.version)
+            ) {
               const versionTags: string[] = [];
 
               const majorTag = `${semver.major(normalizedVersion)}`;
@@ -377,7 +411,7 @@ class DockerMeta extends Command {
       }
     }
 
-    if(config.groups) {
+    if (config.groups) {
       output.group = config.groups;
     }
 
