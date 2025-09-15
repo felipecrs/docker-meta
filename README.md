@@ -1,6 +1,6 @@
 # docker-meta
 
-Generates docker meta information such as tags, labels and build-args.
+Generates docker bake metadata like tags, labels and build args
 
 [![ci](https://github.com/felipecrs/docker-meta/workflows/ci/badge.svg)](https://github.com/felipecrs/docker-meta/actions?query=workflow%3Aci)
 [![Version](https://img.shields.io/npm/v/docker-meta.svg)](https://npmjs.org/package/docker-meta)

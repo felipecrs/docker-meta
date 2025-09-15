@@ -39,7 +39,9 @@
   ],
   "homepage": "https://github.com/felipecrs/docker-meta#readme",
   "keywords": [
-    "docker"
+    "docker",
+    "docker-bake",
+    "docker-buildx"
   ],
   "license": "MIT",
   "type": "module",
