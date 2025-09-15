@@ -48,7 +48,7 @@
   "exports": "./lib/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/felipecrs/bindl.git"
+    "url": "git+https://github.com/felipecrs/docker-meta.git"
   },
   "scripts": {
     "build": "tsc",
