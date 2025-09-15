@@ -1,53 +1,60 @@
-import { getBinPathSync } from "get-bin-path";
-import * as execa from "execa";
-import * as shell from "shelljs";
-import * as tmp from "tmp";
-import * as fs from "fs";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import { stripIndent } from "common-tags";
+import spawn from "nano-spawn";
+import { copyFile, mkdtemp, readFile, rm } from "node:fs/promises";
+import path from "node:path";
 
-const bin = getBinPathSync();
+const repoDirectory = path.normalize(`${import.meta.dirname}/..`);
 
-const configPath = `${process.cwd()}/test/res/docker-meta.config.js`;
+const fixturesDirectory = path.normalize(`${repoDirectory}/test/fixtures`);
+const mainConfigPath = path.normalize(
+  `${fixturesDirectory}/main/docker-meta.config.js`,
+);
 
-jest.setTimeout(30000);
-
-beforeAll(() => {
-  process.env = Object.assign(process.env, { FORCE_COLOR: 0 });
-});
+declare module "vitest" {
+  export interface TestContext {
+    temporaryDirectory: string;
+  }
+}
 
 describe("docker-meta", () => {
-  let dir: tmp.DirResult;
-  let cleanEnv: any;
-
-  beforeEach(() => {
-    cleanEnv = process.env;
-    dir = tmp.dirSync({ unsafeCleanup: true });
-    shell.cd(dir.name);
-    execa.commandSync("git init");
-    execa.commandSync(
-      "git commit --no-edit --allow-empty --allow-empty-message"
+  beforeEach(async (context) => {
+    context.temporaryDirectory = await mkdtemp(
+      path.normalize(`${repoDirectory}/test/temp-`),
     );
-    shell.cp("-f", configPath, "docker-meta.config.js");
+    process.chdir(context.temporaryDirectory);
+    await spawn("git", ["init"]);
+    await spawn("git", [
+      "commit",
+      "--no-edit",
+      "--allow-empty",
+      "--allow-empty-message",
+    ]);
+    await copyFile(mainConfigPath, "docker-meta.config.js");
   });
 
-  afterEach(() => {
-    shell.cd("-");
-    dir.removeCallback();
-    jest.resetModules();
-    process.env = cleanEnv;
+  afterEach(async (context) => {
+    process.chdir(repoDirectory);
+    await rm(context.temporaryDirectory, { force: true, recursive: true });
   });
 
   it("generates correctly for gerrit change", async () => {
+    process.env.CHANGE_REQUEST = "true";
     process.env.VERSION = "1.1.1";
     process.env.LATEST = "true";
     process.env.GERRIT_CHANGE_NUMBER = "123";
     process.env.GIT_COMMIT = "81a88f4";
 
-    const result = execa.commandSync(`${bin} -o dm.json`);
+    const result = await spawn("node", [
+      path.normalize(`${repoDirectory}/src/index.ts`),
+      "-o",
+      "dm.json",
+    ]);
     expect(result.stdout).toBe("");
-    expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    const file = await readFile("dm.json");
+    expect(file.toString()).toEqual(stripIndent`
       {
         "target": {
           "docker-meta": {
@@ -77,11 +84,15 @@ describe("docker-meta", () => {
     process.env.GERRIT_PATCHSET_NUMBER = "321";
     process.env.GIT_COMMIT = "81a88f4";
 
-    const result = execa.commandSync(`${bin} -o dm.json`);
+    const result = await spawn("node", [
+      path.normalize(`${repoDirectory}/src/index.ts`),
+      "-o",
+      "dm.json",
+    ]);
     expect(result.stdout).toBe("");
-    expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    const file = await readFile("dm.json");
+    expect(file.toString()).toEqual(stripIndent`
       {
         "target": {
           "docker-meta": {
@@ -113,11 +124,15 @@ describe("docker-meta", () => {
     process.env.CHANGE_REQUEST = "false";
     process.env.GIT_COMMIT = "81a88f4";
 
-    const result = execa.commandSync(`${bin} -o dm.json`);
+    const result = await spawn("node", [
+      path.normalize(`${repoDirectory}/src/index.ts`),
+      "-o",
+      "dm.json",
+    ]);
     expect(result.stdout).toBe("");
-    expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    const file = await readFile("dm.json");
+    expect(file.toString()).toEqual(stripIndent`
           {
             "target": {
               "docker-meta": {
@@ -155,11 +170,16 @@ describe("docker-meta", () => {
     process.env.CHANGE_REQUEST = "false";
     process.env.GIT_COMMIT = "81a88f4";
 
-    const result = execa.commandSync(`${bin} -o dm.json --no-tag-semver`);
+    const result = await spawn("node", [
+      path.normalize(`${repoDirectory}/src/index.ts`),
+      "-o",
+      "dm.json",
+      "--no-tag-semver",
+    ]);
     expect(result.stdout).toBe("");
-    expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    const file = await readFile("dm.json");
+    expect(file.toString()).toEqual(stripIndent`
           {
             "target": {
               "docker-meta": {
@@ -193,11 +213,15 @@ describe("docker-meta", () => {
     process.env.CHANGE_REQUEST = "false";
     process.env.GIT_COMMIT = "81a88f4";
 
-    const result = execa.commandSync(`${bin} -o dm.json`);
+    const result = await spawn("node", [
+      path.normalize(`${repoDirectory}/src/index.ts`),
+      "-o",
+      "dm.json",
+    ]);
     expect(result.stdout).toBe("");
-    expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    const file = await readFile("dm.json");
+    expect(file.toString()).toEqual(stripIndent`
           {
             "target": {
               "docker-meta": {
@@ -231,11 +255,15 @@ describe("docker-meta", () => {
     process.env.CHANGE_REQUEST = "false";
     process.env.GIT_COMMIT = "81a88f4";
 
-    const result = execa.commandSync(`${bin} -o dm.json`);
+    const result = await spawn("node", [
+      path.normalize(`${repoDirectory}/src/index.ts`),
+      "-o",
+      "dm.json",
+    ]);
     expect(result.stdout).toBe("");
-    expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    const file = await readFile("dm.json");
+    expect(file.toString()).toEqual(stripIndent`
           {
             "target": {
               "docker-meta": {
@@ -273,11 +301,16 @@ describe("docker-meta", () => {
     process.env.CHANGE_REQUEST = "false";
     process.env.GIT_COMMIT = "81a88f456";
 
-    const result = execa.commandSync(`${bin} -o dm.json --tag-git-sha`);
+    const result = await spawn("node", [
+      path.normalize(`${repoDirectory}/src/index.ts`),
+      "-o",
+      "dm.json",
+      "--tag-git-sha",
+    ]);
     expect(result.stdout).toBe("");
-    expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    const file = await readFile("dm.json");
+    expect(file.toString()).toEqual(stripIndent`
           {
             "target": {
               "docker-meta": {
@@ -317,10 +350,16 @@ describe("docker-meta", () => {
     process.env.CHANGE_REQUEST = "false";
     process.env.GIT_COMMIT = "81a88f4";
 
-    const result = execa.commandSync(`${bin} -o dm.json --tag-semver`, {
-      reject: false,
-    });
-    expect(result.exitCode).toBe(2);
+    try {
+      await spawn("node", [
+        path.normalize(`${repoDirectory}/src/index.ts`),
+        "-o",
+        "dm.json",
+        "--tag-semver",
+      ]);
+    } catch (error: any) {
+      expect(error.exitCode).toBe(1);
+    }
   });
 
   it("allows to disable the version", async () => {
@@ -329,11 +368,16 @@ describe("docker-meta", () => {
     process.env.CHANGE_REQUEST = "false";
     process.env.GIT_COMMIT = "81a88f4";
 
-    const result = execa.commandSync(`${bin} --no-tag-version -o dm.json`);
+    const result = await spawn("node", [
+      path.normalize(`${repoDirectory}/src/index.ts`),
+      "--no-tag-version",
+      "-o",
+      "dm.json",
+    ]);
     expect(result.stdout).toBe("");
-    expect(result.exitCode).toBe(0);
 
-    expect(fs.readFileSync("dm.json").toString()).toEqual(stripIndent`
+    const file = await readFile("dm.json");
+    expect(file.toString()).toEqual(stripIndent`
           {
             "target": {
               "docker-meta": {

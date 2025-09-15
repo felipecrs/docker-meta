@@ -1,4 +1,9 @@
-module.exports = {
+// @ts-check
+
+/**
+ * @type {import("../../../src/index.ts").DockerMetaConfig}
+ */
+const config = {
   preset: "gerrit",
   targets: {
     "docker-meta": {
@@ -9,3 +14,5 @@ module.exports = {
     },
   },
 };
+
+export default config;

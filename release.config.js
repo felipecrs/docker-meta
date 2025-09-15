@@ -1,4 +1,7 @@
-module.exports = {
+/**
+ * @type {import('semantic-release').GlobalConfig}
+ */
+export default {
   plugins: [
     [
       "@semantic-release/commit-analyzer",
@@ -16,6 +19,11 @@ module.exports = {
             type: "build",
             scope: "deps",
             release: "patch",
+          },
+          // https://github.com/semantic-release/commit-analyzer/issues/413#issuecomment-1465299187
+          {
+            breaking: true,
+            release: "major",
           },
         ],
       },
@@ -54,29 +62,10 @@ module.exports = {
         },
       },
     ],
-    "@semantic-release/changelog",
-    [
-      "@semantic-release/npm",
-      {
-        tarballDir: "dist",
-      },
-    ],
-    [
-      "@semantic-release/git",
-      {
-        assets: [
-          "README.md",
-          "CHANGELOG.md",
-          "package.json",
-          "package-lock.json",
-          "npm-shrinkwrap.json",
-        ],
-      },
-    ],
+    "@semantic-release/npm",
     [
       "@semantic-release/github",
       {
-        assets: "dist/*.tgz",
         addReleases: "bottom",
       },
     ],

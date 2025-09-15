@@ -1,12 +1,13 @@
 {
+  "extends": "@tsconfig/node22/tsconfig.json",
   "compilerOptions": {
-    "declaration": true,
-    "importHelpers": true,
-    "module": "commonjs",
-    "outDir": "lib",
     "rootDir": "src",
-    "strict": true,
-    "target": "es2017"
+    "outDir": "lib",
+    "declaration": true,
+    // For running via node type stripping
+    "rewriteRelativeImportExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*.ts"]
 }
