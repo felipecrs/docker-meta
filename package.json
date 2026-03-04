@@ -24,7 +24,7 @@
     "conventional-changelog-conventionalcommits": "^9.1.0",
     "eslint": "^9.39.3",
     "eslint-plugin-unicorn": "^63.0.0",
-    "installed-check": "^10.0.0",
+    "installed-check": "^10.0.1",
     "neostandard": "^0.12.2",
     "prettier": "^3.8.1",
     "semantic-release": "^25.0.2",
@@ -53,7 +53,7 @@
   "scripts": {
     "build": "tsc",
     "format": "prettier --write .",
-    "lint": "tsc --noEmit && eslint . && prettier --check . && installed-check --ignoreDev",
+    "lint": "tsc --noEmit && eslint . && prettier --check . && installed-check --ignore-dev",
     "prepack": "npm run build",
     "test": "c8 vitest --no-watch",
     "posttest": "npm run lint"
