@@ -53,7 +53,7 @@
   "scripts": {
     "build": "tsc",
     "format": "prettier --write .",
-    "lint": "tsc --noEmit && eslint . && prettier --check . && installed-check --ignoreDev",
+    "lint": "tsc --noEmit && eslint . && prettier --check . && installed-check --ignore-dev",
     "prepack": "npm run build",
     "test": "c8 vitest --no-watch",
     "posttest": "npm run lint"
