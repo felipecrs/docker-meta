@@ -28,7 +28,7 @@
     "neostandard": "^0.13.0",
     "prettier": "^3.9.4",
     "semantic-release": "^25.0.5",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   },
   "engines": {
